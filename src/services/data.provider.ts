@@ -41,6 +41,20 @@ export class DataProvider {
     ) as RowDataSources;
   }
 
+  /**
+   * Replaces the data source for a row type and synchronizes the related dimension metadata.
+   *
+   * `rgRow` updates also refresh the virtual row model unless `disableVirtualRows` is set.
+   * Pinned row types skip virtual row recalculation because they are rendered directly.
+   *
+   * @param data Full source data assigned to the target row store.
+   * @param type Row collection to update. Defaults to the main body rows.
+   * @param disableVirtualRows Prevents recalculating virtual rows for the main row store.
+   * @param grouping Optional grouping metadata applied together with the new data set.
+   * @param silent Preserves the current trimmed state instead of resetting it during the update.
+   * @param preserveTrimmed Re-applies current trimmed indexes after a silent update.
+   * @returns The same `data` array that was provided to the method.
+   */
   setData(
     data: DataType[],
     type: DimensionRows = 'rgRow',
@@ -50,10 +64,12 @@ export class DataProvider {
       groups?: Groups;
       customRenderer?: GroupLabelTemplateFunc;
     },
+    // if true, store will be updated without resetting trimmed state
     silent = false,
+    preserveTrimmed = false,
   ): DataType[] {
     // set rgRow data
-    this.stores[type].updateData([...data], grouping, silent);
+    this.stores[type].updateData([...data], grouping, silent, preserveTrimmed);
 
     // for pinned row no need virtual data
     const noVirtual = type !== 'rgRow' || disableVirtualRows;
