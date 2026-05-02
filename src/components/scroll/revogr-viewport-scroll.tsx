@@ -467,7 +467,14 @@ export class RevogrViewportScroll implements ElementScroll {
 
     // Detect if the user has reached the left end
     const atLeft = scrollLeft === 0 && e.deltaX < 0;
-    if (!atRight && !atLeft && !this.noHorizontalScrollTransfer) {
+    if (this.noHorizontalScrollTransfer) {
+      if (!atRight && !atLeft) {
+        e.preventDefault?.();
+        this.horizontalScroll.scrollLeft = scrollLeft + e[delta];
+      }
+      return;
+    }
+    if (!atRight && !atLeft) {
       e.preventDefault?.();
     }
     const pos = scrollLeft + e[delta];
