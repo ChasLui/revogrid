@@ -471,6 +471,7 @@ export class RevogrViewportScroll implements ElementScroll {
       e.preventDefault?.();
       if (!atRight && !atLeft) {
         this.horizontalScroll.scrollLeft = scrollLeft + e[delta];
+        this.localScrollTimer.latestScrollUpdate(type);
       }
       return;
     }
