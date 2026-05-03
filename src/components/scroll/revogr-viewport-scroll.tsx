@@ -469,8 +469,19 @@ export class RevogrViewportScroll implements ElementScroll {
     const atLeft = scrollLeft === 0 && e.deltaX < 0;
     if (this.noHorizontalScrollTransfer) {
       if (!atRight && !atLeft) {
+        const nextScrollLeft = scrollLeft + e[delta];
         e.preventDefault?.();
-        this.horizontalScroll.scrollLeft = scrollLeft + e[delta];
+        this.horizontalScroll.scrollLeft = nextScrollLeft;
+        this.localScrollTimer.setCoordinate({
+          dimension: type,
+          coordinate: this.horizontalScroll.scrollLeft,
+        });
+        this.localScrollService?.scroll(
+          this.horizontalScroll.scrollLeft,
+          type,
+          undefined,
+          e[delta],
+        );
         this.localScrollTimer.latestScrollUpdate(type);
       }
       return;
