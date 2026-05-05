@@ -27,19 +27,28 @@ export type Nullable<T> = {
  * Advanced column data schema model.
  * Used for transpassing data to cell renderer and editor.
  */
-export interface ColumnDataSchemaModel {
+type ModelValueByProp<
+  TModel extends DataType,
+  TProp extends ColumnProp,
+> = TProp extends keyof TModel ? TModel[TProp] : any;
+
+export interface ColumnDataSchemaModel<
+  TModel extends DataType = DataType,
+  TColumn extends ColumnRegular = ColumnRegular,
+  TProp extends ColumnProp = TColumn['prop'],
+> {
   /**
    * Column prop used for mapping value to cell from data source model/row
    */
-  prop: ColumnProp;
+  prop: TProp;
   /**
    * Row data object
    */
-  model: DataType;
+  model: TModel;
   /**
    * Column data object
    */
-  column: ColumnRegular;
+  column: TColumn;
   /**
    * Virtual index of the row in the viewport
    */
@@ -59,18 +68,22 @@ export interface ColumnDataSchemaModel {
   /**
    * Row models based on viewport
    */
-  data: DataType[];
+  data: TModel[];
   /**
    * Current cell data value
    * Mapped from model through column property like model['prop']
    */
-  value?: any;
+  value?: ModelValueByProp<TModel, TProp>;
 }
 /**
  * Template property for each cell, extends the column data schema model.
  * Additionally, it provides access to the providers injected into the template.
  */
-export interface CellTemplateProp extends ColumnDataSchemaModel {
+export interface CellTemplateProp<
+  TModel extends DataType = DataType,
+  TColumn extends ColumnRegular = ColumnRegular,
+  TProp extends ColumnProp = TColumn['prop'],
+> extends ColumnDataSchemaModel<TModel, TColumn, TProp> {
   /**
    * Providers injected into the template
    * Also to get grouping depth
@@ -85,14 +98,18 @@ export interface CellTemplateProp extends ColumnDataSchemaModel {
  * If it is a function, it returns whether the cell in question is read-only based on the provided
  * ColumnDataSchemaModel.
  */
-export type ReadOnlyFormat =
+export type ReadOnlyFormat<
+  TModel extends DataType = DataType,
+  TColumn extends ColumnRegular = ColumnRegular,
+> =
   | boolean
-  | ((params: ColumnDataSchemaModel) => boolean);
-export type RowDrag =
+  | ((params: ColumnDataSchemaModel<TModel, TColumn>) => boolean);
+export type RowDrag<
+  TModel extends DataType = DataType,
+  TColumn extends ColumnRegular = ColumnRegular,
+> =
   | boolean
-  | {
-      (params: ColumnDataSchemaModel): boolean;
-    };
+  | ((params: ColumnDataSchemaModel<TModel, TColumn>) => boolean);
 /**
  * `ColumnGrouping` type is used to define a grouping in a column.
  */
@@ -202,11 +219,11 @@ export type Order = 'asc' | 'desc' | undefined;
  * ColumnRegular interface represents regular column definition.
  * Regular column can be any column that is not a grouping column.
  */
-export interface ColumnRegular extends ColumnType {
+export interface ColumnRegular<P extends ColumnProp = ColumnProp> extends ColumnType {
   /**
    * Column prop used for mapping value to cell from data source model/row, used for indexing.
    */
-  prop: ColumnProp;
+  prop: P;
   /**
    * Column pin 'colPinStart'|'colPinEnd'.
    */
@@ -254,7 +271,7 @@ export type ColumnData = (ColumnGrouping | ColumnRegular)[];
  * Column template property.
  * Contains extended properties for column.
  */
-export interface ColumnTemplateProp extends ColumnRegular {
+export interface ColumnTemplateProp<P extends ColumnProp = ColumnProp> extends ColumnRegular<P> {
   /**
    * Providers injected into the template.
    */
@@ -437,12 +454,18 @@ export type PropertiesFunc = (
 export type ColPropertiesFunc = (
   props: ColumnPropProp,
 ) => CellProps | void | undefined;
-export type DataType<D = any> = {
-  [T in ColumnProp]: DataFormat<D>;
+export type DataType<
+  D = any,
+  K extends ColumnProp = ColumnProp,
+> = {
+  [T in K]: DataFormat<D>;
 };
 
-export type DataLookup<T = any> = {
-  [rowIndex: number]: DataType<T>;
+export type DataLookup<
+  T = any,
+  K extends ColumnProp = ColumnProp,
+> = {
+  [rowIndex: number]: DataType<T, K>;
 };
 /**
  * `RowDefinition` is a type that represents a row definition in the
@@ -708,7 +731,10 @@ export type ViewportStores = {
 /**
  * Represents the event object that is emitted when the drag operation starts.
  */
-export interface DragStartEvent {
+export interface DragStartEvent<
+  TModel extends DataType = DataType,
+  TColumn extends ColumnRegular = ColumnRegular,
+> {
   /**
    * Represents the original mouse event that triggered the drag operation.
    */
@@ -717,7 +743,7 @@ export interface DragStartEvent {
   /**
    * Represents the model of the column being dragged.
    */
-  model: ColumnDataSchemaModel;
+  model: ColumnDataSchemaModel<TModel, TColumn>;
 }
 
 /**
