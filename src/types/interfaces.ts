@@ -109,9 +109,7 @@ export type RowDrag<
   TColumn extends ColumnRegular = ColumnRegular,
 > =
   | boolean
-  | {
-      (params: ColumnDataSchemaModel<TModel, TColumn>): boolean;
-    };
+  | ((params: ColumnDataSchemaModel<TModel, TColumn>) => boolean);
 /**
  * `ColumnGrouping` type is used to define a grouping in a column.
  */
