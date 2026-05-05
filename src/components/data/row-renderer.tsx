@@ -8,13 +8,17 @@ export interface RowProps extends JSXBase.HTMLAttributes {
   index: number;
   rowClass?: string;
   depth?: number;
+  groupingLevel?: number;
 }
 
 export const PADDING_DEPTH = 10;
 
-const RowRenderer = ({ rowClass, index, size, start, depth }: RowProps, cells: VNode[]) => {
+const RowRenderer = ({ rowClass, index, size, start, depth, groupingLevel }: RowProps, cells: VNode[]) => {
   const props = {
     ...{ [DATA_ROW]: index },
+    ...(typeof groupingLevel === 'number'
+      ? { 'data-level': groupingLevel }
+      : {}),
   };
   return (
     <div
