@@ -2,7 +2,7 @@ import findIndex from 'lodash/findIndex';
 import range from 'lodash/range';
 import { createStore } from '@stencil/store';
 
-import { Trimmed, trimmedPlugin } from './trimmed.plugin';
+import { gatherTrimmedItems, Trimmed, trimmedPlugin } from './trimmed.plugin';
 import { setStore, Observable } from '../../utils';
 import { proxyPlugin } from './data.proxy';
 import type { GroupLabelTemplateFunc } from '../../plugins/groupingRow/grouping.row.types';
@@ -62,16 +62,26 @@ export class DataStore<T extends GDataType, ST extends GDimension> {
    * full data source update
    * @param source - data column/rgRow source
    * @param grouping - grouping information if present
+   * @param silent - if true, store will be updated without resetting trimmed state
+   * @param preserveTrimmed - if true, current trimmed indexes will be re-applied to the new source, use with caution because physical indexes may change across full data refreshes
    */
   updateData(
     source: T[],
     grouping?: {
+      // grouping depth, how many levels of groups are there
       depth: number;
       groups?: Groups;
+      // custom renderer for group label, if not provided default will be used
       customRenderer?: GroupLabelTemplateFunc;
     },
+    // if true, store will be updated without resetting trimmed state
     silent = false,
+    // if true, current trimmed indexes will be re-applied to the new source
+    preserveTrimmed = false,
   ) {
+    const trimmed = this.store.get('trimmed');
+    const trimmedItems =
+      silent && preserveTrimmed ? gatherTrimmedItems(trimmed) : null;
     // during full update we do drop trim
     if (!silent) {
       this.store.set('trimmed', {});
@@ -85,12 +95,17 @@ export class DataStore<T extends GDataType, ST extends GDimension> {
       source,
       proxyItems: [...items],
     });
-    // update data items
-    this.store.set('items', items);
+    // Explicit trim preservation is opt-in because physical indexes may change
+    // across full data refreshes.
+    this.store.set(
+      'items',
+      trimmedItems ? items.filter(i => !trimmedItems[i]) : items,
+    );
     // apply grouping if present
     if (grouping) {
       setStore(this.store, {
         groupingDepth: grouping.depth,
+        // if groups are not provided, we will consider that there is only one group with all items
         groups: grouping.groups,
         groupingCustomRenderer: grouping.customRenderer,
       });

@@ -59,6 +59,8 @@ export class RevogrViewportScroll implements ElementScroll {
 
   @Prop() colType!: DimensionCols | 'rowHeaders';
 
+  @Prop() noHorizontalScrollTransfer = false;
+
   /**
    * Before scroll event
    */
@@ -465,6 +467,21 @@ export class RevogrViewportScroll implements ElementScroll {
 
     // Detect if the user has reached the left end
     const atLeft = scrollLeft === 0 && e.deltaX < 0;
+    if (this.noHorizontalScrollTransfer) {
+      if (!atRight && !atLeft) {
+        const nextScrollLeft = scrollLeft + e[delta];
+        e.preventDefault?.();
+        this.horizontalScroll.scrollLeft = nextScrollLeft;
+        this.localScrollService?.scroll(
+          this.horizontalScroll.scrollLeft,
+          type,
+          undefined,
+          e[delta],
+        );
+        this.localScrollTimer.latestScrollUpdate(type);
+      }
+      return;
+    }
     if (!atRight && !atLeft) {
       e.preventDefault?.();
     }

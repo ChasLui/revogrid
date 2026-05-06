@@ -322,6 +322,7 @@ export class RevogrData {
           rowClass={rowClass}
           size={rgRow.size}
           start={rgRow.start}
+          groupingLevel={groupDepth || undefined}
         >
           {cells}
         </RowRenderer>
