@@ -24,7 +24,7 @@ import type {
   ShowData,
 } from './filter.types';
 
-import { getCellDataParsed } from '../../utils';
+import { getCellDataParsed, timeout } from '../../utils';
 import { TrimmedEntity } from '@store';
 
 export * from './filter.types';
@@ -130,6 +130,7 @@ export class FilterPlugin extends BasePlugin {
       if (Object.keys(this.multiFilterItems).length === 0) {
         return;
       }
+      await timeout();
       await this.runFiltering(this.multiFilterItems);
     };
     this.addEventListener('headerclick', e => this.headerclick(e));
@@ -247,10 +248,16 @@ export class FilterPlugin extends BasePlugin {
       return;
     }
 
+    const prop = e.detail.prop;
+    const currentPanel = await this.pop.getChanges();
+    if (currentPanel?.prop === prop) {
+      await this.pop.show();
+      return;
+    }
+
     // filter button clicked, open filter dialog
     const gridPos = this.revogrid.getBoundingClientRect();
     const buttonPos = el.getBoundingClientRect();
-    const prop = e.detail.prop;
 
     const data: ShowData = {
       ...e.detail,

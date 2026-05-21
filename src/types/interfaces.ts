@@ -27,19 +27,28 @@ export type Nullable<T> = {
  * Advanced column data schema model.
  * Used for transpassing data to cell renderer and editor.
  */
-export interface ColumnDataSchemaModel {
+type ModelValueByProp<
+  TModel extends DataType,
+  TProp extends ColumnProp,
+> = TProp extends keyof TModel ? TModel[TProp] : any;
+
+export interface ColumnDataSchemaModel<
+  TModel extends DataType = DataType,
+  TColumn extends ColumnRegular = ColumnRegular,
+  TProp extends ColumnProp = TColumn['prop'],
+> {
   /**
    * Column prop used for mapping value to cell from data source model/row
    */
-  prop: ColumnProp;
+  prop: TProp;
   /**
    * Row data object
    */
-  model: DataType;
+  model: TModel;
   /**
    * Column data object
    */
-  column: ColumnRegular;
+  column: TColumn;
   /**
    * Virtual index of the row in the viewport
    */
@@ -59,18 +68,22 @@ export interface ColumnDataSchemaModel {
   /**
    * Row models based on viewport
    */
-  data: DataType[];
+  data: TModel[];
   /**
    * Current cell data value
    * Mapped from model through column property like model['prop']
    */
-  value?: any;
+  value?: ModelValueByProp<TModel, TProp>;
 }
 /**
  * Template property for each cell, extends the column data schema model.
  * Additionally, it provides access to the providers injected into the template.
  */
-export interface CellTemplateProp extends ColumnDataSchemaModel {
+export interface CellTemplateProp<
+  TModel extends DataType = DataType,
+  TColumn extends ColumnRegular = ColumnRegular,
+  TProp extends ColumnProp = TColumn['prop'],
+> extends ColumnDataSchemaModel<TModel, TColumn, TProp> {
   /**
    * Providers injected into the template
    * Also to get grouping depth
@@ -85,14 +98,18 @@ export interface CellTemplateProp extends ColumnDataSchemaModel {
  * If it is a function, it returns whether the cell in question is read-only based on the provided
  * ColumnDataSchemaModel.
  */
-export type ReadOnlyFormat =
+export type ReadOnlyFormat<
+  TModel extends DataType = DataType,
+  TColumn extends ColumnRegular = ColumnRegular,
+> =
   | boolean
-  | ((params: ColumnDataSchemaModel) => boolean);
-export type RowDrag =
+  | ((params: ColumnDataSchemaModel<TModel, TColumn>) => boolean);
+export type RowDrag<
+  TModel extends DataType = DataType,
+  TColumn extends ColumnRegular = ColumnRegular,
+> =
   | boolean
-  | {
-      (params: ColumnDataSchemaModel): boolean;
-    };
+  | ((params: ColumnDataSchemaModel<TModel, TColumn>) => boolean);
 /**
  * `ColumnGrouping` type is used to define a grouping in a column.
  */
@@ -135,11 +152,11 @@ export type ColumnTypes = {
 /**
  * Interface for custom cell renderer.
  */
-export interface CellTemplate {
+export interface CellTemplate<TModel extends DataType = DataType> {
   // TODO: Add Promise support for template and all custom function so user will be able to use async render on the light speed
   (
     createElement: HyperFunc<VNode>,
-    props: CellTemplateProp,
+    props: CellTemplateProp<TModel>,
     additionalData?: any,
   ): any;
 }
@@ -147,13 +164,13 @@ export interface CellTemplate {
  * Interface for regular column definition.
  * Regular column can be any column that is not a grouping column.
  */
-export interface ColumnType extends ColumnProperties {
+export interface ColumnType<TModel extends DataType = DataType> extends ColumnProperties {
   /**
    * Represents whether the column or cell is read-only.
    * Can be a boolean or a function that returns a boolean.
    * The function receives column data as a parameter.
    */
-  readonly?: ReadOnlyFormat;
+  readonly?: ReadOnlyFormat<TModel>;
   /**
    * Represents the default column size.
    */
@@ -176,21 +193,21 @@ export interface ColumnType extends ColumnProperties {
   /**
    * Represents cell properties for custom styling, classes, and events.
    */
-  cellProperties?: PropertiesFunc;
+  cellProperties?: PropertiesFunc<TModel>;
   /**
    * Represents the cell template for custom rendering.
    */
-  cellTemplate?: CellTemplate;
+  cellTemplate?: CellTemplate<TModel>;
   /**
    * Represents the cell compare function for custom sorting.
    */
-  cellCompare?: CellCompareFunc;
+  cellCompare?: CellCompareFunc<TModel>;
 
   /**
    * Represents the cell value parse function for custom parsing.
    * Currently only used for filtering.
    */
-  cellParser?: (model: DataType, column: ColumnRegular) => any;
+  cellParser?: (model: TModel, column: ColumnRegular<ColumnProp, TModel>) => any;
 }
 export type Order = 'asc' | 'desc' | undefined;
 /**
@@ -202,11 +219,11 @@ export type Order = 'asc' | 'desc' | undefined;
  * ColumnRegular interface represents regular column definition.
  * Regular column can be any column that is not a grouping column.
  */
-export interface ColumnRegular extends ColumnType {
+export interface ColumnRegular<P extends ColumnProp = ColumnProp, TModel extends DataType = DataType> extends ColumnType<TModel> {
   /**
    * Column prop used for mapping value to cell from data source model/row, used for indexing.
    */
-  prop: ColumnProp;
+  prop: P;
   /**
    * Column pin 'colPinStart'|'colPinEnd'.
    */
@@ -234,7 +251,7 @@ export interface ColumnRegular extends ColumnType {
   /**
    * Is cell in column or individual can be dragged.
    */
-  rowDrag?: RowDrag;
+  rowDrag?: RowDrag<TModel>;
   /**
    * Represents type defined in columnTypes property through grid config.
    */
@@ -242,7 +259,7 @@ export interface ColumnRegular extends ColumnType {
   /**
    * Function called before column applied to the store.
    */
-  beforeSetup?(rgCol: ColumnRegular): void;
+  beforeSetup?(rgCol: ColumnRegular<P, TModel>): void;
   /**
    * Additional properties can be added to the column definition.
    */
@@ -254,7 +271,7 @@ export type ColumnData = (ColumnGrouping | ColumnRegular)[];
  * Column template property.
  * Contains extended properties for column.
  */
-export interface ColumnTemplateProp extends ColumnRegular {
+export interface ColumnTemplateProp<P extends ColumnProp = ColumnProp> extends ColumnRegular<P> {
   /**
    * Providers injected into the template.
    */
@@ -418,31 +435,55 @@ export type FocusTemplateFunc = (
  * the data of the first cell, and the data of the second cell. It returns a
  * number indicating the relative order of the two cells.
  */
-export type CellCompareFunc = (
+export type CellCompareFunc<TModel extends DataType = DataType> = (
   // The column property to compare.
   prop: ColumnProp,
   // The data of the first cell.
-  a: DataType,
+  a: TModel,
   // The data of the second cell.
-  b: DataType,
+  b: TModel,
 ) => number;
 export type ColumnTemplateFunc = (
   createElement: HyperFunc<VNode>,
   props: ColumnTemplateProp,
   additionalData?: any,
 ) => any;
-export type PropertiesFunc = (
-  props: CellTemplateProp,
+export type PropertiesFunc<TModel extends DataType = DataType> = (
+  props: CellTemplateProp<TModel>,
 ) => CellProps | void | undefined;
 export type ColPropertiesFunc = (
   props: ColumnPropProp,
 ) => CellProps | void | undefined;
-export type DataType<D = any> = {
-  [T in ColumnProp]: DataFormat<D>;
+/**
+ * Represents a generic row data object used internally by the grid.
+ *
+ * @typeParam D - Value type for all properties (defaults to `any`).
+ * @typeParam K - Column property keys (defaults to `ColumnProp`).
+ *
+ * For type-safe usage, define your own row interface and pass it
+ * directly as the data source. Use `ColumnRegular` generics to
+ * bind column definitions to your row type:
+ * ```ts
+ * type MyRow = { id: number; name: string };
+ * const source: MyRow[] = [{ id: 1, name: 'Alice' }];
+ * const columns: ColumnRegular<keyof MyRow, MyRow>[] = [
+ *   { prop: 'id', name: 'ID' },
+ *   { prop: 'name', name: 'Name' },
+ * ];
+ * ```
+ */
+export type DataType<
+  D = any,
+  K extends ColumnProp = ColumnProp,
+> = {
+  [T in K]: DataFormat<D>;
 };
 
-export type DataLookup<T = any> = {
-  [rowIndex: number]: DataType<T>;
+export type DataLookup<
+  T = any,
+  K extends ColumnProp = ColumnProp,
+> = {
+  [rowIndex: number]: DataType<T, K>;
 };
 /**
  * `RowDefinition` is a type that represents a row definition in the
@@ -480,11 +521,11 @@ export type ViewPortResizeEvent = {
  * `ViewPortScrollEvent` is an object that contains information about a scroll
  * event in the viewport.
  */
-export type ViewPortScrollEvent = {
+export type ViewPortScrollEvent<D = DimensionType> = {
   /**
    * The dimension of the viewport being scrolled.
    */
-  dimension: DimensionType;
+  dimension: D;
   /**
    * The coordinate of the scroll event.
    */
@@ -708,7 +749,10 @@ export type ViewportStores = {
 /**
  * Represents the event object that is emitted when the drag operation starts.
  */
-export interface DragStartEvent {
+export interface DragStartEvent<
+  TModel extends DataType = DataType,
+  TColumn extends ColumnRegular = ColumnRegular,
+> {
   /**
    * Represents the original mouse event that triggered the drag operation.
    */
@@ -717,7 +761,7 @@ export interface DragStartEvent {
   /**
    * Represents the model of the column being dragged.
    */
-  model: ColumnDataSchemaModel;
+  model: ColumnDataSchemaModel<TModel, TColumn>;
 }
 
 /**
@@ -814,8 +858,8 @@ export interface FocusRenderEvent extends AllDimensionType {
   next?: Partial<Cell>;
 }
 
-export interface FocusAfterRenderEvent extends AllDimensionType {
-  model?: any;
+export interface FocusAfterRenderEvent<TModel extends DataType = DataType> extends AllDimensionType {
+  model?: TModel;
   column?: ColumnRegular;
   /**
    * Virtual index of the row in the viewport
@@ -846,9 +890,9 @@ export type ScrollCoordinateEvent = {
 };
 
 /** Range paste. */
-export interface RangeClipboardPasteEvent extends AllDimensionType {
-  data: DataLookup;
-  models: Partial<DataLookup>;
+export interface RangeClipboardPasteEvent<TModel extends DataType = DataType> extends AllDimensionType {
+  data: { [rowIndex: number]: TModel };
+  models: { [rowIndex: number]: TModel | undefined };
   range: RangeArea | null;
 }
 
